@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'performdashboard',
     'workflows',
 ]
 
@@ -121,7 +122,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # STATIC_ROOT = BASE_DIR /'static'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = [
     'performance_main/static',
     ]

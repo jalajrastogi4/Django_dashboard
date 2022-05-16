@@ -98,3 +98,22 @@ body {
   border-color: transparent;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
 }
+
+canvas {
+  padding-top: 15px;
+  padding-right: 15px;
+  padding-left: 15px;
+  background-color: #fcfcfa;
+}
+
+#Client {
+  background-color: #4cb4c7;
+}
+
+#Trust {
+  background-color: #7abecc;
+}
+
+#Iterations {
+  background-color: #7CD1C0;
+}

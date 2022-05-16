@@ -3,10 +3,26 @@ import numpy as np
 import altair as alt
 import re
 import os
+from django.conf import settings
 
-def read_file():
-    module_dir = os.path.dirname(__file__)
-    fname = os.path.join(module_dir,"files/Workflow_Result.txt")
+def read_file(workflow_folder_name):
+    parent_dir = os.path.join(settings.MEDIA_ROOT, 'PerformanceResults')
+
+    for f in os.scandir(parent_dir):
+        if f.name == workflow_folder_name:
+            result_dir = os.path.join(parent_dir, workflow_folder_name)
+            fname = ""
+            
+            for file in os.listdir(result_dir):
+                if file.endswith(".txt"):
+                    fname = os.path.join(result_dir, file)
+            
+            return fname
+        else:
+            return None
+
+
+def create_raw_list(fname):
     f = open(fname)
     lines = f.readlines()
     rng = len(lines)
@@ -59,7 +75,7 @@ def make_chart(df):
 
     x = alt.Chart(df).mark_bar().encode(
         x=alt.X('TrustID', sort='-x'),
-        y='Time(in sec)',
+        y=alt.Y('Time(in sec)', scale=alt.Scale(domain=[0, 300])),
         tooltip = ['TrustID', 'Time Taken (h:m:s)'],
         color=colorCondition
     ).interactive().add_selection(selection).properties(
@@ -85,9 +101,91 @@ def trust_frame(result_frames, trust_id):
 
 def trust_chart(trust_frame, trust_id):
     x = alt.Chart(trust_frame.reset_index()).mark_bar().encode(
-        x='index',
-        y='Time(in sec)',
+        x=alt.X('index', axis=None),
+        y=alt.Y('Time(in sec)', scale=alt.Scale(domain=[0, 300])),
+        tooltip=['Time(in sec)'],
         color=alt.value('lightgreen'),
-    ).properties(title=trust_id, width=300)
+    ).properties(title=trust_id, width=200, height=200)
     
+    return x
+
+
+def max_trust_time_chart(trust_frame, title):
+    x = alt.Chart(trust_frame.reset_index()).mark_bar().encode(
+            x=alt.X('TrustID'),
+            y=alt.Y('Time(in sec)', scale=alt.Scale(domain=[0, 350])),
+            tooltip = ['Time(in sec)'],
+            color=alt.Color('Time(in sec)' ,scale=alt.Scale(scheme="blues"), legend=None)
+        ).properties(
+                width=700,
+                height=300,
+                title=title
+        )
+
+    return x
+
+
+def max_iteration_df(result):
+    iteration_list = ['Iteration-' + str(i) for i in range(1, len(result)+1)]
+    max_time = []
+    for dframe in result:
+        max_time.append(dframe['Time(in sec)'].max())
+
+    max_df = pd.DataFrame({"Iterations":iteration_list, "Time (in sec)": max_time})
+    return max_df
+
+
+def max_iteration_time(iteration_list, result):
+    max_time = []
+
+    for dframe in result:
+        max_time.append(dframe['Time(in sec)'].max())
+
+    max_df = pd.DataFrame({"Iterations":iteration_list, "Time (in sec)": max_time})
+
+    x = alt.Chart(max_df).mark_bar().encode(
+                x=alt.X('Iterations', axis=None),
+                y=alt.Y('Time (in sec)', axis=None),
+                tooltip = ['Time (in sec)'],
+                color = alt.Color('Time (in sec)' ,scale=alt.Scale(scheme="lighttealblue"), legend=None)
+        ).properties(
+                width=300,
+                height=250
+        ).configure_axis(grid=False, domain=False).configure(background='#fcfcfa')
+
+    return x
+
+
+def max_trust_df(result):
+    trust_list = result[0].TrustID.tolist()
+    new_res = [df.reset_index().drop('index', axis=1) for df in result]
+    new_concat = pd.concat(new_res, axis=0)
+    ultimate = new_concat[['TrustID', 'Time(in sec)']].groupby('TrustID').max('Time(in sec)')
+    return ultimate
+
+
+def all_trust_chart(result):
+    trust_iteration_list = result[0].TrustID.tolist()
+    chart_list = []
+    for i in trust_iteration_list:
+        get_trust = i
+        trust_df = trust_frame(result, get_trust)
+        chart = trust_chart(trust_df, get_trust)
+        chart_list.append(chart)
+
+    x = alt.ConcatChart(concat=chart_list, columns=4)
+
+    return x
+
+
+def all_iteration_chart(result):
+    iteration_list = ['Iteration-' + str(i) for i in range(1, len(result)+1)]
+    iter_chart_list = []
+    for i in iteration_list:
+        get_index = str(i).split('-')[1]
+        my_index=int(get_index)-1
+        chart = make_chart(result[my_index])
+        iter_chart_list.append(chart)
+
+    x = alt.ConcatChart(concat=iter_chart_list, columns=2)
     return x
